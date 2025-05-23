@@ -1,0 +1,38 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.x'
+  displayName: 'Use Python 3.x'
+
+- script: |
+    # Download etl.py
+    curl -L -o etl.py https://raw.githubusercontent.com/oleitao/itjobs-scraper/main/etl.py
+
+    # Optionally download requirements.txt if needed
+    curl -L -o requirements.txt https://raw.githubusercontent.com/oleitao/itjobs-scraper/main/requirements.txt
+
+    python -m pip install --upgrade pip
+    pip install -r requirements.txt
+  displayName: 'Download etl.py and install dependencies'
+
+- script: python etl.py
+  workingDirectory: $(Build.SourcesDirectory)/itjobs
+  displayName: 'Run ETL script'
+
+- script: |
+    mkdir -p data
+    mv *.jsonl data/
+  workingDirectory: $(Build.SourcesDirectory)/itjobs
+  displayName: 'Move .jsonl file(s) to data folder'
+
+- script: |
+    echo "Cleaning up workspace..."
+    rm -rf $(Build.SourcesDirectory)/itjobs/*
+  displayName: 'Cleanup pipeline workspace'
+  condition: always()
